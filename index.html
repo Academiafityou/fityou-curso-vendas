@@ -301,8 +301,6 @@
         .sos-char-wrapper:hover .sos-char-img { filter: drop-shadow(0 6px 20px rgba(255,107,44,0.5)); animation: sosCharWave 0.6s ease-in-out; }
         @keyframes sosCharBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         @keyframes sosCharWave { 0% { transform: translateY(0) rotate(0deg); } 25% { transform: translateY(-5px) rotate(-3deg); } 50% { transform: translateY(-8px) rotate(3deg); } 75% { transform: translateY(-5px) rotate(-2deg); } 100% { transform: translateY(0) rotate(0deg); } }
-        .sos-char-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #ff3b30; color: #fff; font-size: 0.65rem; font-weight: 800; padding: 3px 10px; border-radius: 10px; animation: sosBadgePulse 2s infinite; letter-spacing: 0.5px; white-space: nowrap; }
-        @keyframes sosBadgePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .sos-char-name { font-size: 0.7rem; font-weight: 700; color: var(--primary); margin-top: -8px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 3px 12px; border-radius: 10px; white-space: nowrap; }
         .sos-float-panel { position: fixed; bottom: 210px; right: 20px; width: 380px; max-height: 520px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; z-index: 998; display: none; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: sosPanelIn 0.3s ease; }
         .sos-float-panel.active { display: flex; }
@@ -682,7 +680,6 @@
 <!-- FLOATING SOS CHARACTER -->
 <div class="sos-char-wrapper" id="sosCharWrapper" onclick="toggleSosFloat()">
     <div class="sos-char-speech" id="sosCharSpeech">Precisa de ajuda? 😊</div>
-    <div class="sos-char-badge">SOS</div>
     <img src="simone.png" class="sos-char-img" alt="Prof. Simone">
     <div class="sos-char-name">Prof. Simone</div>
 </div>
