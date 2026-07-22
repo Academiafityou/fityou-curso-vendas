@@ -225,6 +225,35 @@
         .fs-tip strong { color: var(--text-primary); }
         @media (max-width: 768px) { .floating-suggestions { width: calc(100% - 32px); right: 16px; bottom: 16px; } }
 
+        /* LEAD ACTION ROW */
+        .lead-action-row { display: none; }
+        .lead-action-row.open { display: table-row; }
+        .lead-action-row td { padding: 0 16px 14px; background: rgba(255,255,255,0.02); }
+        .lead-action-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-top: 4px; }
+        .lead-action-card.urgent { border-left: 3px solid var(--hot); background: rgba(255,59,48,0.04); }
+        .lead-action-card.action { border-left: 3px solid var(--warm); background: rgba(255,149,0,0.04); }
+        .lead-action-card.ok { border-left: 3px solid var(--wpp-green); background: rgba(37,211,102,0.04); }
+        .lead-action-card.info { border-left: 3px solid var(--accent-blue); background: rgba(33,150,243,0.04); }
+        .lac-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .lac-icon { font-size: 1.1rem; }
+        .lac-title { font-size: 0.82rem; font-weight: 700; }
+        .lac-title.urgent { color: var(--hot); }
+        .lac-title.action { color: var(--warm); }
+        .lac-title.ok { color: var(--wpp-green); }
+        .lac-title.info { color: var(--accent-blue); }
+        .lac-text { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 8px; }
+        .lac-template { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--text-secondary); line-height: 1.6; position: relative; }
+        .lac-template-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .lac-copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,107,44,0.15); border: none; color: var(--primary); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+        .lac-copy-btn:hover { background: rgba(255,107,44,0.25); }
+        .crm-table tr.lead-row { cursor: pointer; }
+        .crm-table tr.lead-row:hover td { background: rgba(255,107,44,0.05); }
+        .crm-action-indicator { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-left: 8px; }
+        .crm-action-indicator.urgent { background: rgba(255,59,48,0.12); color: var(--hot); }
+        .crm-action-indicator.action { background: rgba(255,149,0,0.12); color: var(--warm); }
+        .crm-action-indicator.ok { background: rgba(37,211,102,0.12); color: var(--wpp-green); }
+        .crm-action-indicator.info { background: rgba(33,150,243,0.12); color: var(--accent-blue); }
+
         /* LEAD DETAIL */
         .lead-detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
         .lead-detail-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--bg-card-hover); border: 2px solid var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; color: var(--primary); }
@@ -872,6 +901,167 @@ function getTemperatureLabel(t) {
     return { label: '❄️ Frio', class: 'cold' };
 }
 
+function getLeadAction(l) {
+    const today = new Date().toISOString().split('T')[0];
+    const name = l.name.split(' ')[0];
+    const modality = l.modality || 'natação';
+    const value = l.value ? parseFloat(l.value) : null;
+    const valueText = value ? `R$ ${value.toLocaleString('pt-BR', {minimumFractionDigits:2})}` : null;
+    const text = (l.text || '').toLowerCase();
+    const daysSinceContact = l.contactDate ? Math.floor((new Date(today) - new Date(l.contactDate)) / 86400000) : null;
+    const daysSinceUpdate = l.updatedAt ? Math.floor((new Date(today) - new Date(l.updatedAt)) / 86400000) : null;
+
+    // Overdue follow-up
+    if (l.followUp && l.followUp < today && l.status !== 'won') {
+        const daysOverdue = Math.floor((new Date(today) - new Date(l.followUp)) / 86400000);
+        let template = '';
+        if (l.temperature === 'hot') {
+            template = `Oi ${name}! Tudo bem? 😊 Vim dar continuidade na nossa conversa sobre ${modality}. ${valueText ? `O plano por ${valueText} ainda está disponível.` : 'Ainda posso te ajudar a fechar!'}`;
+        } else if (l.temperature === 'warm') {
+            template = `Oi ${name}! Como vai? Passando para saber se conseguiu pensar melhor sobre a proposta. Tenho uma novidade que acho que você vai curtir! 🏊`;
+        } else {
+            template = `Oi ${name}! Tudo bem? 😊 A Fit You tem uma condição especial esse mês. Se quiser, posso te contar os detalhes.`;
+        }
+        return {
+            type: 'urgent',
+            icon: '⏰',
+            shortLabel: `Atrasado ${daysOverdue}d`,
+            title: `Follow-up atrasado há ${daysOverdue} dia(s)! Retorne AGORA`,
+            description: daysOverdue >= 3
+                ? `${name} está esperando há ${daysOverdue} dias. Lead ${l.temperature === 'hot' ? 'quente' : l.temperature === 'warm' ? 'morno' : 'frio'} — quanto mais espera, mais frio fica.`
+                : `${name} precisa de um retorno. ${l.temperature === 'hot' ? 'Esse lead está quente, não perca a oportunidade!' : 'Mantenha o contato para não perder o lead.'}`,
+            template
+        };
+    }
+
+    // Follow-up is today
+    if (l.followUp === today && l.status !== 'won') {
+        return {
+            type: 'action',
+            icon: '📅',
+            shortLabel: 'Hoje',
+            title: `Entre em contato com ${name} HOJE`,
+            description: `Follow-up agendado para hoje. ${l.temperature === 'hot' ? 'Lead quente — feche agora!' : 'Hora de dar continuidade.'}`,
+            template: `Oi ${name}! Tudo certo? 😊 Vim dar continuidade na nossa conversa. ${valueText ? `O valor que te passei foi ${valueText}.` : 'Posso te tirar qualquer dúvida.'} Podemos alinhar os próximos passos?`
+        };
+    }
+
+    // Hot lead with no recent interaction
+    if (l.temperature === 'hot' && l.status !== 'won') {
+        if (daysSinceUpdate !== null && daysSinceUpdate >= 1) {
+            return {
+                type: 'urgent',
+                icon: '🔥',
+                shortLabel: 'Agir',
+                title: `Lead quente esfriando! Fale com ${name}`,
+                description: `${name} demonstrou muito interesse mas já se passou ${daysSinceUpdate} dia(s) sem contato. Lead quente esfri rápido!`,
+                template: `Oi ${name}! 🎉 Tive uma novidade sobre ${modality} que acho que vai te interessar. Podemos bater um papinho rápido?`
+            };
+        }
+        return {
+            type: 'ok',
+            icon: '🔥',
+            shortLabel: 'Quente',
+            title: `${name} está pronto para fechar!`,
+            description: `Lead classificado como quente. Mantenha o contato para converter em venda.`,
+            template: valueText
+                ? `Oi ${name}! 🏊 Tudo bem? O plano de ${modality} por ${valueText} + musculação grátis continua disponível. Quer agendar uma aula experimental para conhecer?`
+                : `Oi ${name}! 🏊 Posso te ajudar a finalizar? Que tal agendar uma aula experimental gratuita?`
+        };
+    }
+
+    // Warm lead - needs nurturing
+    if (l.temperature === 'warm' && l.status !== 'won') {
+        const noFollowUp = !l.followUp || l.followUp >= today;
+        if (noFollowUp && daysSinceUpdate !== null && daysSinceUpdate >= 2) {
+            return {
+                type: 'action',
+                icon: '☀️',
+                shortLabel: 'Nurturar',
+                title: `${name} está em dúvida — envie mais informações`,
+                description: `Lead morno há ${daysSinceUpdate} dia(s). Envie conteúdo que ajude na decisão: depoimentos, benefícios, ou uma oferta.`,
+                template: `Oi ${name}! 😊 Tudo bem? Separei algumas informações que talvez te ajudem: a Fit You tem piscina por ionização (sem cloro!), água morna a 30°C e musculação grátis no plano. Quer que eu te conte mais?`
+            };
+        }
+        return {
+            type: 'info',
+            icon: '☀️',
+            shortLabel: 'Morno',
+            title: `${name} está avaliando`,
+            description: `Lead morno — demonstre interesse sem pressionar. Ofereça valor.`,
+            template: `Oi ${name}! 🏊 Só passando para saber se ficou com alguma dúvida sobre ${modality}. Posso te enviar um vídeo da piscina para você ver como é!`
+        };
+    }
+
+    // Cold lead
+    if (l.temperature === 'cold' && l.status !== 'won') {
+        if (daysSinceUpdate !== null && daysSinceUpdate >= 5) {
+            return {
+                type: 'info',
+                icon: '❄️',
+                shortLabel: 'Reativar',
+                title: `Tentar reativar ${name}`,
+                description: `Última interação há ${daysSinceUpdate} dias. Envie algo leve para reabrir a conversa sem pressionar.`,
+                template: `Oi ${name}! 😊 Tudo bem? A Fit You está com uma condição especial esse mês e lembrei de você. Se quiser dar uma olhada, estou à disposição!`
+            };
+        }
+        return {
+            type: 'info',
+            icon: '❄️',
+            shortLabel: 'Frio',
+            title: `${name} não demonstrou interesse`,
+            description: `Lead frio. Não force — mantenha presença para quando ele estiver pronto.`,
+            template: null
+        };
+    }
+
+    // Won
+    if (l.status === 'won') {
+        return { type: 'ok', icon: '🏆', shortLabel: 'Fechou!', title: `${name} já é cliente!`, description: 'Parabéns pela venda! Mantenha o relacionamento pós-venda.', template: null };
+    }
+
+    // Default / new lead
+    if (daysSinceContact !== null && daysSinceContact <= 0) {
+        return {
+            type: 'action',
+            icon: '🆕',
+            shortLabel: 'Novo',
+            title: `Novo lead: ${name}`,
+            description: 'Lead recém-cadastrado. Faça o primeiro contato rapidamente!',
+            template: `Oi ${name}! 😊 Aqui é da Fit You Academia. ${modality ? `Vi que você tem interesse em ${modality}.` : 'Vi que você tem interesse em nossas atividades.'} Posso te ajudar com alguma informação?`
+        };
+    }
+
+    return { type: 'info', icon: '📋', shortLabel: '', title: '', description: '', template: null };
+}
+
+function toggleLeadAction(id) {
+    const row = document.getElementById('action-' + id);
+    if (row) {
+        const isOpen = row.classList.contains('open');
+        document.querySelectorAll('.lead-action-row.open').forEach(r => r.classList.remove('open'));
+        if (!isOpen) row.classList.add('open');
+    }
+}
+
+function copyTemplate(id) {
+    const el = document.getElementById('tpl-' + id);
+    if (el) {
+        navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+            showToast('📋 Mensagem copiada!');
+        }).catch(() => {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            document.execCommand('copy');
+            sel.removeAllRanges();
+            showToast('📋 Mensagem copiada!');
+        });
+    }
+}
+
 // ===== NAVIGATION =====
 function navigate(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
@@ -967,18 +1157,39 @@ function renderCRM() {
         const value = l.value ? `R$ ${parseFloat(l.value).toLocaleString('pt-BR', {minimumFractionDigits:2})}` : '—';
         const followUp = l.followUp ? new Date(l.followUp + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
         const contactDate = l.contactDate ? new Date(l.contactDate + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-        return `<tr>
-            <td><span class="crm-status ${t.class}"><span class="crm-status-dot"></span>${t.label}</span></td>
+        const action = getLeadAction(l);
+        return `
+        <tr class="lead-row" onclick="toggleLeadAction('${l.id}')">
+            <td>
+                <span class="crm-status ${t.class}"><span class="crm-status-dot"></span>${t.label}</span>
+                <span class="crm-action-indicator ${action.type}">${action.icon} ${action.shortLabel}</span>
+            </td>
             <td><strong>${l.name}</strong></td>
             <td class="crm-phone">${l.phone || '—'}</td>
             <td><span class="crm-modalidade">${l.modality || '—'}</span></td>
             <td class="crm-value">${value}</td>
             <td>${contactDate}</td>
             <td>${followUp}</td>
-            <td class="crm-actions">
+            <td class="crm-actions" onclick="event.stopPropagation()">
                 <button class="crm-action-btn" onclick="viewLead('${l.id}')" title="Ver detalhes">👁️</button>
                 <button class="crm-action-btn" onclick="editLead('${l.id}')" title="Editar">✏️</button>
                 <button class="crm-action-btn delete" onclick="deleteLead('${l.id}')" title="Excluir">🗑️</button>
+            </td>
+        </tr>
+        <tr class="lead-action-row" id="action-${l.id}">
+            <td colspan="8">
+                <div class="lead-action-card ${action.type}">
+                    <div class="lac-header">
+                        <span class="lac-icon">${action.icon}</span>
+                        <span class="lac-title ${action.type}">${action.title}</span>
+                    </div>
+                    <div class="lac-text">${action.description}</div>
+                    ${action.template ? `<div class="lac-template">
+                        <div class="lac-template-label">💬 Modelo de mensagem:</div>
+                        <div id="tpl-${l.id}">${action.template}</div>
+                        <button class="lac-copy-btn" onclick="event.stopPropagation();copyTemplate('${l.id}')">📋 Copiar</button>
+                    </div>` : ''}
+                </div>
             </td>
         </tr>`;
     }).join('');
